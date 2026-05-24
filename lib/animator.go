@@ -13,34 +13,54 @@ type Animator struct {
 
 	Animations map[string]Animation
 
-	animation Animation
+	animation         Animation
+	playing_animation string
 
 	sprite         *ebiten.Image
 	sprite_current int
 }
 
-func (Animator) New(sprite *ebiten.Image, animations map[string]Animation) *Animator {
+func (Animator) New(animations map[string]Animation) *Animator {
 
 	a := &Animator{
 		Animations: animations,
-		sprite:     sprite,
 	}
 
 	return a
 }
 
-func (a *Animator) Start(play string) *ebiten.Image {
+func (a *Animator) InitImage() *ebiten.Image {
+
+	var width, height int
+
+	for _, animation := range a.Animations {
+		if animation.Width > width {
+			width = animation.Width
+		}
+		if animation.Height > height {
+			height = animation.Height
+		}
+	}
+
+	a.sprite = ebiten.NewImage(width, height)
+
+	return a.sprite
+}
+
+func (a *Animator) Play(play string) {
+	if a.playing_animation == play {
+		return
+	}
+
 	if _, ok := a.Animations[play]; !ok {
 		log.Println("Animation", play, "wasn't found in animations")
 	}
 
+	a.playing_animation = play
+
 	a.animation = a.Animations[play]
 
 	a.ticks_before_reset = a.animation.Speed * a.animation.Length
-
-	a.sprite.Deallocate()
-
-	a.sprite = ebiten.NewImage(a.animation.Width, a.animation.Height)
 
 	if !a.animation.cached {
 		a.animation.CacheFrames()
@@ -48,7 +68,10 @@ func (a *Animator) Start(play string) *ebiten.Image {
 
 	a.ForceDraw()
 
-	return a.sprite
+}
+
+func (a *Animator) GetPlaying() string {
+	return a.playing_animation
 }
 
 // Updates and draws a new frame if needed

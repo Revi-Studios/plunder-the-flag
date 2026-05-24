@@ -5,10 +5,12 @@ A game about trying to get through your enemy team and capture their flag whilst
 ## Game so far
 
 > [!NOTE]
-> This is picture and might be outdated
-> It was taken at [commit 7d75429](https://github.com/Revi-Studios/plunder-the-flag/commit/7d75429)
+> This picture might be outdated.
+> It was taken at verision [v0.1.1](https://github.com/Revi-Studios/plunder-the-flag/tree/v0.1.1)
 
-![window](docs/screenshots/game_window_at_7d75429.png)
+![window](docs/screenshots/v0.1.1/game_window.png)
+New Debug mode:
+![window-debug](docs/screenshots/v0.1.1/game_window_debug.png)
 
 ## How do I install it?
 
