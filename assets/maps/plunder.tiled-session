@@ -1,0 +1,42 @@
+{
+    "activeFile": "test-map.tmx",
+    "expandedProjectPaths": [
+    ],
+    "fileStates": {
+        "test-map.tmx": {
+            "scale": 8,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 731.5625,
+                "y": 606.5625
+            }
+        },
+        "test-map.tmx#Tile-Sets (64-64)": {
+            "scaleInDock": 2.98
+        },
+        "test-map.tmx#flag": {
+            "scaleInDock": 2.98,
+            "scaleInEditor": 1
+        },
+        "test-map.tmx#pirate": {
+            "scaleInDock": 2.98,
+            "scaleInEditor": 3.22
+        }
+    },
+    "last.exportedFilePath": "/Users/wafflepotato/Downloads",
+    "last.imagePath": "/Users/wafflepotato/Projects/plunder-the-flag/assets/images/pirate-pink",
+    "map.lastUsedExportFilter": "CSV files (*.csv)",
+    "map.lastUsedFormat": "tmx",
+    "openFiles": [
+        "test-map.tmx"
+    ],
+    "project": "plunder.tiled-project",
+    "recentFiles": [
+        "test-map.tmx"
+    ],
+    "tileset.embedInMap": true,
+    "tileset.tileSize": {
+        "height": 67,
+        "width": 50
+    }
+}
