@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image/color"
 	"log"
+	"strconv"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -32,6 +33,14 @@ func (Flag) New(team int, world *lib.WorldData, x, y float64) *Flag {
 		log.Fatal(err)
 	}
 
+	var start int
+	switch team {
+	case 1:
+		start = 48
+	default:
+		start = 0
+	}
+
 	flag := &Flag{
 		worldData: world,
 		Team:      team,
@@ -39,6 +48,7 @@ func (Flag) New(team int, world *lib.WorldData, x, y float64) *Flag {
 	}
 	flag.animator = lib.Animator{}.New(map[string]lib.Animation{
 		"default": {
+			Start:         start,
 			Speed:         30,
 			Source_sprite: img,
 			Length:        3,
@@ -72,7 +82,7 @@ func (self *Flag) Draw(screen *ebiten.Image) {
 }
 
 func (self *Flag) Pick() *Flag {
-	log.Println("Flag Picked!")
+	log.Println("Flag Picked!" + " (Team: " + strconv.Itoa(self.Team) + ")")
 	self.IsPicked = true
 	self.worldData.Hash.Remove(self.collisionShape)
 	return self
@@ -105,6 +115,6 @@ FindGround:
 		self.collisionShape.MoveTo(self.X, self.Y-self.collisionShape.Height/2)
 	}
 
-	log.Println("Flag Dropped!")
+	log.Println("Flag Dropped!" + " (Team: " + strconv.Itoa(self.Team) + ")")
 	self.IsPicked = false
 }

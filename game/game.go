@@ -15,6 +15,21 @@ import (
 	"github.com/revi-studios/plunder-the-flag/lib"
 )
 
+type Game struct {
+	Player *Player
+
+	flag  *Flag
+	flag2 *Flag
+	title *ebiten.Image
+
+	WorldData *lib.WorldData
+
+	world      *ebiten.Image
+	worldScale float64
+	fontScale  float64
+	ground     *collider.RectangleShape
+}
+
 func NewGame() *Game {
 	title, _, err := ebitenutil.NewImageFromFile("assets/images/plunder-the-flag-title.png")
 	if err != nil {
@@ -41,6 +56,7 @@ func NewGame() *Game {
 		worldZoom: 1,
 	}
 	game.flag = Flag{}.New(0, game.WorldData, 20, 100)
+	game.flag2 = Flag{}.New(1, game.WorldData, 80, 100)
 	game.Player = Player{}.New(game.WorldData, 20, 0)
 	game.ground = game.WorldData.Hash.NewRectangleShape(0, 200, 800, 200)
 	game.ground.SetParent("ground")
@@ -80,8 +96,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op.GeoM.Scale(2, 2)
 	g.world.DrawImage(g.title, op)
 
-	// Flag
+	// Flags
 	g.flag.Draw(g.world)
+	g.flag2.Draw(g.world)
 
 	// Player
 	g.Player.Draw(g.world)
