@@ -90,9 +90,9 @@ func (a *Animator) UpdateAndDraw() {
 			a.sprite.DrawImage(cached, op)
 		} else {
 			a.sprite.DrawImage(a.animation.Source_sprite.SubImage(image.Rect(
-				a.animation.Width*new,
+				a.animation.Width*new+a.animation.Start,
 				0,
-				a.animation.Width*new+a.animation.Width,
+				a.animation.Width*new+a.animation.Width+a.animation.Start,
 				a.animation.Height,
 			)).(*ebiten.Image), op)
 		}
@@ -107,9 +107,9 @@ func (a *Animator) ForceDraw() {
 	op := &ebiten.DrawImageOptions{}
 
 	a.sprite.DrawImage(a.animation.Source_sprite.SubImage(image.Rect(
-		a.animation.Width*a.sprite_current,
+		a.animation.Width*a.sprite_current+a.animation.Start,
 		0,
-		a.animation.Width*a.sprite_current+a.animation.Width,
+		a.animation.Width*a.sprite_current+a.animation.Width+a.animation.Start,
 		a.animation.Height,
 	)).(*ebiten.Image), op)
 }
