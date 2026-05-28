@@ -121,7 +121,6 @@ func (self *Player) Update(delta float64) {
 	case ebiten.IsKeyPressed(ebiten.KeyE) && self.last_flag_picked > 30:
 		if self.flag != nil {
 			self.flag.Drop(self.X, self.Y)
-			log.Println("Dropped flag:", self.flag, "on team", self.flag.Team)
 			self.flag = nil
 
 			self.last_flag_picked = 0
@@ -129,7 +128,6 @@ func (self *Player) Update(delta float64) {
 			for _, collision := range collisions {
 				if flag, ok := collision.Other.GetParent().(*Flag); ok && self.flag == nil {
 					self.flag = flag.Pick()
-					log.Println("Picked flag:", flag, "on team", flag.Team)
 
 					self.last_flag_picked = 0
 				}

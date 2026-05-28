@@ -5,6 +5,13 @@ go 1.25.5
 require github.com/hajimehoshi/ebiten/v2 v2.9.9
 
 require (
+	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220712193148-63cf1f4ef61f // indirect
+	github.com/hajimehoshi/ebiten v1.12.13 // indirect
+	golang.org/x/exp v0.0.0-20190731235908-ec7cb31e5a56 // indirect
+	golang.org/x/mobile v0.0.0-20220518205345-8578da9835fd // indirect
+)
+
+require (
 	github.com/ebitengine/gomobile v0.0.0-20250923094054-ea854a63cce1 // indirect
 	github.com/ebitengine/hideconsole v1.0.0 // indirect
 	github.com/ebitengine/purego v0.9.0 // indirect
