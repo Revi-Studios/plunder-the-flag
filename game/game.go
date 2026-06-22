@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"log"
 	"os"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -19,8 +20,9 @@ import (
 type Game struct {
 	Player   *Player
 	entities *[]lib.Entity
+	title    *ebiten.Image
 
-	title *ebiten.Image
+	Config lib.GameSave
 
 	WorldData *lib.WorldData
 	Font      *text.GoTextFaceSource
@@ -28,10 +30,7 @@ type Game struct {
 	world  *ebiten.Image
 	ground *collider.RectangleShape
 
-	worldScale float64
-	textScale  float64
-
-	drawDebugMenu bool
+	tick uint64
 }
 
 func NewGame() *Game {
@@ -53,15 +52,18 @@ func NewGame() *Game {
 		WorldData: &lib.WorldData{
 			Gravity: 70,
 			Hash:    collider.NewSpatialHash(180),
-			Debug:   false,
 		},
 		title:    title,
 		entities: &[]lib.Entity{},
+		Config: lib.GameSave{
+			WorldScale: 1.5,
+			TextScale:  1,
 
-		worldScale: 1.5,
-		textScale:  1,
-		world:      ebiten.NewImage(100, 100),
+			DebugMenu: true,
+		},
+		world: ebiten.NewImage(100, 100),
 	}
+	game.Config.Load()
 
 	game.ground = game.WorldData.Hash.NewRectangleShape(0, 300, 712, 200)
 	game.ground.SetParent("ground")
@@ -70,23 +72,40 @@ func NewGame() *Game {
 	*game.entities = append(*game.entities, Player{}.New(game.WorldData, game.Font, "Barron", 1, 20, 0))
 	game.Player = Player{}.New(game.WorldData, game.Font, "Pirate in Pink", 0, 20, 0)
 
+	go func() {
+		for true {
+			time.Sleep(time.Minute * 5)
+			game.Config.Save()
+		}
+	}()
+
 	return &game
 }
 
 func (g *Game) Update() error {
-	delta := min(1/ebiten.ActualTPS(), 1.0/60)
+	if ebiten.IsWindowBeingClosed() {
+		g.Config.Save()
+		return ebiten.Termination
+	}
 
+	delta := min(1/ebiten.ActualTPS(), 1.0/60)
+	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
+		g.Config.Save()
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyL) {
+		g.Config.Load()
+	}
 	if inpututil.IsKeyJustPressed(ebiten.Key9) {
-		g.worldScale -= 0.1
-		log.Println("World scale changed to", g.worldScale)
+		g.Config.WorldScale -= 0.1
+		log.Println("World scale changed to", g.Config.WorldScale)
 	}
 	if inpututil.IsKeyJustPressed(ebiten.Key0) {
-		g.worldScale += 0.1
-		log.Println("World scale changed to", g.worldScale)
+		g.Config.WorldScale += 0.1
+		log.Println("World scale changed to", g.Config.WorldScale)
 
 	}
 	if inpututil.IsKeyJustPressed(ebiten.Key3) {
-		g.drawDebugMenu = !g.drawDebugMenu
+		g.Config.DebugMenu = !g.Config.DebugMenu
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
 		g.Player.X = 0
@@ -138,15 +157,15 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 
 	deviceScale := ebiten.Monitor().DeviceScaleFactor()
-	worldScale := g.worldScale * deviceScale
-	textScale := g.textScale * deviceScale
+	worldScale := g.Config.WorldScale * deviceScale
+	textScale := g.Config.TextScale * deviceScale
 
 	op.GeoM.Reset()
 	op.GeoM.Scale(worldScale, worldScale)
 	op.Filter = ebiten.FilterNearest
 	screen.DrawImage(g.world, op)
 
-	if g.drawDebugMenu {
+	if g.Config.DebugMenu {
 		DrawDebugMenu(screen, &text.GoTextFace{Source: g.Font, Size: 25}, textScale, 15, []struct {
 			Name  string
 			Value any
@@ -155,8 +174,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			{"Tps", ebiten.ActualTPS()},
 			{"Entities", len(*g.entities)},
 			{},
-			{"World Scale", g.worldScale},
-			{"Text Scale", g.textScale},
+			{"World Scale", g.Config.WorldScale},
+			{"Text Scale", g.Config.TextScale},
 			{},
 			{"Font Family", g.Font.Metadata().Family},
 			{"WorldImage", g.world.Bounds().Size()},
@@ -182,8 +201,8 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 	highDPIWidth := int(float64(outsideWidth) * deviceScale)
 	highDPIHeight := int(float64(outsideHeight) * deviceScale)
 
-	w := int(float64(highDPIWidth) / g.worldScale)
-	h := int(float64(highDPIHeight) / g.worldScale)
+	w := int(float64(highDPIWidth) / g.Config.WorldScale)
+	h := int(float64(highDPIHeight) / g.Config.WorldScale)
 
 	if g.world.Bounds().Dx() != w || g.world.Bounds().Dy() != h {
 		g.world = ebiten.NewImage(w, h)
