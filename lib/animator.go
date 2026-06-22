@@ -60,7 +60,7 @@ func (a *Animator) Play(play string) {
 
 	a.animation = a.Animations[play]
 
-	a.ticks_before_reset = a.animation.Speed * a.animation.Length
+	a.ticks_before_reset = a.animation.FrameTime * a.animation.Length
 
 	if !a.animation.cached {
 		a.animation.CacheFrames()
@@ -81,7 +81,7 @@ func (a *Animator) UpdateAndDraw() {
 		a.tick = 0
 	}
 
-	if new := a.tick / a.animation.Speed; new != a.sprite_current {
+	if new := a.tick / a.animation.FrameTime; new != a.sprite_current {
 
 		a.sprite.Clear()
 		op := &ebiten.DrawImageOptions{}

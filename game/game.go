@@ -17,18 +17,21 @@ import (
 )
 
 type Game struct {
-	Player *Player
+	Player   *Player
+	entities *[]lib.Entity
 
-	flag  *Flag
-	flag2 *Flag
 	title *ebiten.Image
 
 	WorldData *lib.WorldData
+	Font      *text.GoTextFaceSource
 
-	world      *ebiten.Image
+	world  *ebiten.Image
+	ground *collider.RectangleShape
+
 	worldScale float64
-	fontScale  float64
-	ground     *collider.RectangleShape
+	textScale  float64
+
+	drawDebugMenu bool
 }
 
 func NewGame() *Game {
@@ -46,29 +49,32 @@ func NewGame() *Game {
 	}
 
 	game := Game{
+		Font: fontSource,
 		WorldData: &lib.WorldData{
 			Gravity: 70,
 			Hash:    collider.NewSpatialHash(180),
-			Font:    fontSource,
 			Debug:   false,
 		},
-		title:      title,
-		world:      ebiten.NewImage(100, 100),
+		title:    title,
+		entities: &[]lib.Entity{},
+
 		worldScale: 1.5,
-		fontScale:  1,
+		textScale:  1,
+		world:      ebiten.NewImage(100, 100),
 	}
-	game.flag = Flag{}.New(0, game.WorldData, 20, 100)
-	game.flag2 = Flag{}.New(1, game.WorldData, 80, 100)
-	game.Player = Player{}.New(game.WorldData, 20, 0)
-	game.ground = game.WorldData.Hash.NewRectangleShape(0, 200, 800, 200)
+
+	game.ground = game.WorldData.Hash.NewRectangleShape(0, 300, 712, 200)
 	game.ground.SetParent("ground")
+	*game.entities = append(*game.entities, Flag{}.New(0, game.WorldData, 20, 100))
+	*game.entities = append(*game.entities, Flag{}.New(1, game.WorldData, 80, 100))
+	*game.entities = append(*game.entities, Player{}.New(game.WorldData, game.Font, "Barron", 1, 20, 0))
+	game.Player = Player{}.New(game.WorldData, game.Font, "Pirate in Pink", 0, 20, 0)
 
 	return &game
 }
 
 func (g *Game) Update() error {
-
-	g.Player.Update(float64(1) / 60)
+	delta := min(1/ebiten.ActualTPS(), 1.0/60)
 
 	if inpututil.IsKeyJustPressed(ebiten.Key9) {
 		g.worldScale -= 0.1
@@ -78,6 +84,29 @@ func (g *Game) Update() error {
 		g.worldScale += 0.1
 		log.Println("World scale changed to", g.worldScale)
 
+	}
+	if inpututil.IsKeyJustPressed(ebiten.Key3) {
+		g.drawDebugMenu = !g.drawDebugMenu
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
+		g.Player.X = 0
+		g.Player.Y = 0
+		g.Player.yv = 0
+		for _, entity := range *g.entities {
+			if e, ok := entity.(*Player); ok {
+				e.X = 0
+				e.Y = 0
+				e.yv = 0
+			}
+		}
+	}
+	if inpututil.IsKeyJustPressed(ebiten.Key1) {
+		g.WorldData.Debug = !g.WorldData.Debug
+	}
+	g.Player.Update(delta)
+
+	for _, entity := range *g.entities {
+		entity.Update(delta)
 	}
 
 	return nil
@@ -95,9 +124,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op.GeoM.Scale(2, 2)
 	g.world.DrawImage(g.title, op)
 
-	// Flags
-	g.flag.Draw(g.world)
-	g.flag2.Draw(g.world)
+	// Entities
+	for _, entity := range *g.entities {
+		entity.Draw(g.world)
+	}
 
 	// Player
 	g.Player.Draw(g.world)
@@ -109,33 +139,41 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	deviceScale := ebiten.Monitor().DeviceScaleFactor()
 	worldScale := g.worldScale * deviceScale
-	fontScale := g.fontScale * deviceScale
+	textScale := g.textScale * deviceScale
 
 	op.GeoM.Reset()
 	op.GeoM.Scale(worldScale, worldScale)
 	op.Filter = ebiten.FilterNearest
 	screen.DrawImage(g.world, op)
 
-	// Cords Text
-	tOp := &text.DrawOptions{}
-	tOp.GeoM.Translate(20, 30)
-	tOp.GeoM.Scale(fontScale, fontScale)
-	tOp.Filter = ebiten.FilterLinear
-	text.Draw(screen, fmt.Sprintf("x: %.1f, y: %.1f", g.Player.X, g.Player.Y), &text.GoTextFace{Source: g.WorldData.Font, Size: 25}, tOp)
-
-	tOp.GeoM.Reset()
-	tOp.GeoM.Translate(20, 0)
-	tOp.GeoM.Scale(fontScale, fontScale)
-	tOp.Filter = ebiten.FilterLinear
-	text.Draw(screen, fmt.Sprintf("FPS: %.2f", ebiten.ActualFPS()), &text.GoTextFace{Source: g.flag.worldData.Font, Size: 25}, tOp)
-
-	tOp.GeoM.Reset()
-	tOp.GeoM.Translate(20, 60)
-	tOp.GeoM.Scale(fontScale, fontScale)
-	tOp.Filter = ebiten.FilterLinear
-	hasFlag := g.Player.flag != nil
-	text.Draw(screen, fmt.Sprintf("Has a flag: %v", hasFlag), &text.GoTextFace{Source: g.flag.worldData.Font, Size: 25}, tOp)
-
+	if g.drawDebugMenu {
+		DrawDebugMenu(screen, &text.GoTextFace{Source: g.Font, Size: 25}, textScale, 15, []struct {
+			Name  string
+			Value any
+		}{
+			{"Fps", ebiten.ActualFPS()},
+			{"Tps", ebiten.ActualTPS()},
+			{"Entities", len(*g.entities)},
+			{},
+			{"World Scale", g.worldScale},
+			{"Text Scale", g.textScale},
+			{},
+			{"Font Family", g.Font.Metadata().Family},
+			{"WorldImage", g.world.Bounds().Size()},
+			{"Screen", screen.Bounds().Size()},
+		}, []struct {
+			Name  string
+			Value any
+		}{
+			{"Name", g.Player.Name},
+			{"X", g.Player.X},
+			{"Y", g.Player.Y},
+			{},
+			{"On Ground", g.Player.onGround},
+			{"Has Flag", g.Player.flag != nil},
+			{"Flag", g.Player.flag},
+		})
+	}
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -152,4 +190,55 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 	}
 
 	return highDPIWidth, highDPIHeight
+}
+
+func DrawDebugMenu(screen *ebiten.Image, face text.Face, textScale float64, margin float64, left, right []struct {
+	Name  string
+	Value any
+}) {
+	var row float64
+	for _, item := range left {
+
+		var str string
+		switch item.Value.(type) {
+		case float64, float32:
+			str = fmt.Sprintf("%s: %.1f", item.Name, item.Value)
+		default:
+			str = fmt.Sprintf("%s: %v", item.Name, item.Value)
+		}
+		if item.Name == "" {
+			str = ""
+		}
+
+		op := &text.DrawOptions{}
+		op.GeoM.Translate(margin, face.Metrics().HAscent*row)
+		op.GeoM.Scale(textScale, textScale)
+		op.Filter = ebiten.FilterLinear
+		text.Draw(screen, str, face, op)
+
+		row++
+	}
+
+	row = 0
+	for _, item := range right {
+
+		var str string
+		switch item.Value.(type) {
+		case float64, float32:
+			str = fmt.Sprintf("%s: %.1f", item.Name, item.Value)
+		default:
+			str = fmt.Sprintf("%s: %v", item.Name, item.Value)
+		}
+		if item.Name == "" {
+			str = ""
+		}
+
+		op := &text.DrawOptions{}
+		op.GeoM.Translate((float64(screen.Bounds().Dx())/2)-text.Advance(str, face)-margin, face.Metrics().HAscent*row)
+		op.GeoM.Scale(textScale, textScale)
+		op.Filter = ebiten.FilterLinear
+		text.Draw(screen, str, face, op)
+
+		row++
+	}
 }

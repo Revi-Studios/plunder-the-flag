@@ -9,7 +9,7 @@ import (
 type Animation struct {
 	Source_sprite *ebiten.Image
 	Length        int
-	Speed         int
+	FrameTime     int
 
 	Width  int
 	Height int

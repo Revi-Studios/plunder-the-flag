@@ -21,6 +21,8 @@ type Player struct {
 	X float64
 	Y float64
 
+	Team int
+
 	worldData      *lib.WorldData
 	collisionShape *collider.RectangleShape
 
@@ -32,20 +34,21 @@ type Player struct {
 	Sprite   *ebiten.Image
 	animator *lib.Animator
 
+	font *text.GoTextFaceSource
+
 	xv float64
 	yv float64
 
 	tick               int
 	ticks_before_reset int
 
-	last_jumped        int
-	last_flag_picked   int
-	last_debug_toggled int
-	facing_left        bool
-	onGround           bool
+	last_jumped      int
+	last_flag_picked int
+	facing_left      bool
+	onGround         bool
 }
 
-func (Player) New(worldData *lib.WorldData, x, y float64) *Player {
+func (Player) New(worldData *lib.WorldData, font *text.GoTextFaceSource, name string, team int, x, y float64) *Player {
 	idle, _, err := ebitenutil.NewImageFromFile("assets/images/pirate-pink/pirate-pink-idle.png")
 	if err != nil {
 		log.Fatal(err)
@@ -56,24 +59,29 @@ func (Player) New(worldData *lib.WorldData, x, y float64) *Player {
 	}
 
 	p := &Player{
-		Name:       "Pirate in Pink",
+		Name:       name,
 		worldData:  worldData,
+		font:       font,
 		Jump_force: 800,
 		speed:      170,
 		X:          x,
 		Y:          y,
+		Team:       team,
+
+		yv: 0,
+		xv: 0,
 	}
 
 	p.animator = lib.Animator{}.New(map[string]lib.Animation{
 		"idle": {
-			Speed:         20,
+			FrameTime:     20,
 			Source_sprite: idle,
 			Length:        5,
 			Width:         50,
 			Height:        67,
 		},
 		"run": {
-			Speed:         5,
+			FrameTime:     10,
 			Source_sprite: run,
 			Length:        5,
 			Width:         50,
@@ -83,16 +91,17 @@ func (Player) New(worldData *lib.WorldData, x, y float64) *Player {
 
 	p.Sprite = p.animator.InitImage()
 	p.animator.Play("idle")
-	p.collisionShape = p.worldData.Hash.NewRectangleShape(p.X, p.Y, 40, 50)
+	p.collisionShape = p.worldData.Hash.NewRectangleShape(p.X, p.Y-25, 40, 50)
 	p.collisionShape.SetParent(p)
 
 	return p
 }
 
 func (self *Player) Update(delta float64) {
+	self.collisionShape.MoveTo(self.X, self.Y-self.collisionShape.Height/2)
+
 	self.onGround = false
 	self.last_flag_picked++
-	self.last_debug_toggled++
 
 	self.collisionShape.Move(0, 1)
 	for _, collision := range self.worldData.Hash.CheckCollisions(self.collisionShape) {
@@ -117,54 +126,88 @@ func (self *Player) Update(delta float64) {
 		self.yv += self.worldData.Gravity * delta
 	}
 
-	switch true {
-	case ebiten.IsKeyPressed(ebiten.KeyE) && self.last_flag_picked > 30:
-		if self.flag != nil {
-			self.flag.Drop(self.X, self.Y)
-			self.flag = nil
+	if self.Team == 0 {
+		switch true {
+		case ebiten.IsKeyPressed(ebiten.KeyE) && self.last_flag_picked > 30:
+			if self.flag != nil {
+				self.flag.Drop(self.X, self.Y)
+				self.flag = nil
 
-			self.last_flag_picked = 0
-		} else if collisions := self.worldData.Hash.CheckCollisions(self.collisionShape); len(collisions) > 0 {
-			for _, collision := range collisions {
-				if flag, ok := collision.Other.GetParent().(*Flag); ok && self.flag == nil {
-					self.flag = flag.Pick()
+				self.last_flag_picked = 0
+			} else if collisions := self.worldData.Hash.CheckCollisions(self.collisionShape); len(collisions) > 0 {
+				for _, collision := range collisions {
+					if flag, ok := collision.Other.GetParent().(*Flag); ok && self.flag == nil {
+						self.flag = flag.Pick()
 
-					self.last_flag_picked = 0
+						self.last_flag_picked = 0
+					}
 				}
 			}
+
+		case ebiten.IsKeyPressed(ebiten.KeySpace) && self.onGround:
+			self.yv -= self.Jump_force * delta
+			self.Y--
+
+		case ebiten.IsKeyPressed(ebiten.KeyA):
+			self.facing_left = true
+			self.xv = -self.speed * delta
+
+			self.animator.Play("run")
+
+		case ebiten.IsKeyPressed(ebiten.KeyD):
+			self.facing_left = false
+			self.xv = self.speed * delta
+
+			self.animator.Play("run")
+
+		default:
+			self.xv = 0
+
+			self.animator.Play("idle")
+
 		}
+	}
 
-	case (ebiten.IsKeyPressed(ebiten.KeySpace) || ebiten.IsKeyPressed(ebiten.KeyArrowUp)) && self.onGround:
-		self.yv -= self.Jump_force * delta
-		self.Y--
+	if self.Team == 1 {
+		switch true {
+		case ebiten.IsKeyPressed(ebiten.KeyM) && self.last_flag_picked > 30:
+			if self.flag != nil {
+				self.flag.Drop(self.X, self.Y)
+				self.flag = nil
 
-	case ebiten.IsKeyPressed(ebiten.KeyA) || ebiten.IsKeyPressed(ebiten.KeyArrowLeft):
-		self.facing_left = true
-		self.xv = -self.speed * delta
+				self.last_flag_picked = 0
+			} else if collisions := self.worldData.Hash.CheckCollisions(self.collisionShape); len(collisions) > 0 {
+				for _, collision := range collisions {
+					if flag, ok := collision.Other.GetParent().(*Flag); ok && self.flag == nil {
+						self.flag = flag.Pick()
 
-		self.animator.Play("run")
+						self.last_flag_picked = 0
+					}
+				}
+			}
 
-	case ebiten.IsKeyPressed(ebiten.KeyD) || ebiten.IsKeyPressed(ebiten.KeyArrowRight):
-		self.facing_left = false
-		self.xv = self.speed * delta
+		case ebiten.IsKeyPressed(ebiten.KeyArrowUp) && self.onGround:
+			self.yv -= self.Jump_force * delta
+			self.Y--
 
-		self.animator.Play("run")
+		case ebiten.IsKeyPressed(ebiten.KeyArrowLeft):
+			self.facing_left = true
+			self.xv = -self.speed * delta
 
-	case ebiten.IsKeyPressed(ebiten.KeyR):
-		self.X = 0
-		self.Y = 0
-		self.xv = 0
-		self.yv = 0
+			self.animator.Play("run")
 
-	case ebiten.IsKeyPressed(ebiten.Key1) && self.last_debug_toggled > 30:
-		self.last_debug_toggled = 0
-		self.worldData.Debug = !self.worldData.Debug
+		case ebiten.IsKeyPressed(ebiten.KeyArrowRight):
+			self.facing_left = false
+			self.xv = self.speed * delta
 
-	default:
-		self.xv = 0
+			self.animator.Play("run")
 
-		self.animator.Play("idle")
+		default:
+			self.xv = 0
 
+			self.animator.Play("idle")
+
+		}
 	}
 
 	self.X += self.xv
@@ -191,7 +234,7 @@ func (self *Player) Draw(screen *ebiten.Image) {
 	}
 
 	// Draw player name
-	face := &text.GoTextFace{Source: self.worldData.Font, Size: 15}
+	face := &text.GoTextFace{Source: self.font, Size: 15}
 
 	tOp := &text.DrawOptions{}
 	tOp.GeoM.Translate(self.X-(text.Advance(self.Name, face))/2, self.Y-float64(self.Sprite.Bounds().Dy())-10)
@@ -203,3 +246,11 @@ func (self *Player) Draw(screen *ebiten.Image) {
 func (self *Player) Pos() (x, y float64) {
 	return self.X, self.Y
 }
+
+// func (self *Player) MoveTo(x, y float64) {
+// 	self.X = x
+// 	self.Y = y
+// 	self.xv = 0
+// 	self.yv = 0
+// 	self.collisionShape.MoveTo(self.X, self.Y-self.collisionShape.Height/2)
+// }

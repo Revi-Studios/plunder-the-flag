@@ -49,7 +49,7 @@ func (Flag) New(team int, world *lib.WorldData, x, y float64) *Flag {
 	flag.animator = lib.Animator{}.New(map[string]lib.Animation{
 		"default": {
 			Start:         start,
-			Speed:         30,
+			FrameTime:     30,
 			Source_sprite: img,
 			Length:        3,
 			Width:         16,
@@ -118,3 +118,12 @@ FindGround:
 	log.Println("Flag Dropped!" + " (Team: " + strconv.Itoa(self.Team) + ")")
 	self.IsPicked = false
 }
+
+func (self *Flag) Pos() (x, y float64) {
+	if !self.IsPicked {
+		return self.X, self.Y
+	}
+	return 0, 0
+}
+
+func (self *Flag) Update(delta float64) {}
