@@ -81,8 +81,12 @@ func (self *Flag) Draw(screen *ebiten.Image) {
 
 }
 
-func (self *Flag) Pick() *Flag {
-	log.Println("Flag Picked!" + " (Team: " + strconv.Itoa(self.Team) + ")")
+func (self *Flag) Pick(entity lib.Entity) *Flag {
+	if e, ok := entity.(*Player); ok {
+		log.Printf("Team %v captured Team %v's flag!", e.Team, self.Team)
+	} else {
+		log.Println("Flag Picked!" + " (Team: " + strconv.Itoa(self.Team) + ")")
+	}
 	self.IsPicked = true
 	self.worldData.Hash.Remove(self.collisionShape)
 	return self

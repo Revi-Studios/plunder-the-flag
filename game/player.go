@@ -137,7 +137,7 @@ func (self *Player) Update(delta float64) {
 			} else if collisions := self.worldData.Hash.CheckCollisions(self.collisionShape); len(collisions) > 0 {
 				for _, collision := range collisions {
 					if flag, ok := collision.Other.GetParent().(*Flag); ok && self.flag == nil {
-						self.flag = flag.Pick()
+						self.flag = flag.Pick(self)
 
 						self.last_flag_picked = 0
 					}
@@ -179,7 +179,7 @@ func (self *Player) Update(delta float64) {
 			} else if collisions := self.worldData.Hash.CheckCollisions(self.collisionShape); len(collisions) > 0 {
 				for _, collision := range collisions {
 					if flag, ok := collision.Other.GetParent().(*Flag); ok && self.flag == nil {
-						self.flag = flag.Pick()
+						self.flag = flag.Pick(self)
 
 						self.last_flag_picked = 0
 					}
@@ -246,11 +246,3 @@ func (self *Player) Draw(screen *ebiten.Image) {
 func (self *Player) Pos() (x, y float64) {
 	return self.X, self.Y
 }
-
-// func (self *Player) MoveTo(x, y float64) {
-// 	self.X = x
-// 	self.Y = y
-// 	self.xv = 0
-// 	self.yv = 0
-// 	self.collisionShape.MoveTo(self.X, self.Y-self.collisionShape.Height/2)
-// }
